@@ -1,0 +1,12 @@
+# 编译产物
+*.o
+server
+
+# 运行日志
+log/*.log
+
+# 编辑器 / IDE 配置
+.vscode/
+
+# 系统文件
+.DS_Store

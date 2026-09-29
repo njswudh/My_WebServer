@@ -13,7 +13,7 @@ std::string M_log::getNowTime(const char* format) {
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
     std::tm now_tm{};
-    localtime_s(&now_tm, &now_time);
+    localtime_r(&now_time, &now_tm);
 
     char buffer[32];
     std::strftime(buffer, sizeof(buffer), format, &now_tm);
@@ -22,7 +22,7 @@ std::string M_log::getNowTime(const char* format) {
 }
 
 
-bool M_log::init(std::string file_name, int log_buf_size, int split_lines, int max_queue_size){
+bool M_log::init(std::string file_name, int log_buf_size, int split_lines, int max_queue_size) {
 
     m_log_buf_size = log_buf_size;
     m_log_buf = new char[m_log_buf_size];

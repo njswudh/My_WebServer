@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>登录 - My WebServer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: #f4f6fb;
+            color: #1f2430;
+        }
+        .card {
+            width: 100%;
+            max-width: 380px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px 26px 22px;
+            box-shadow: 0 10px 30px rgba(20, 30, 60, .12);
+        }
+        h1 {
+            margin: 0 0 4px;
+            font-size: 22px;
+        }
+        .sub {
+            margin: 0 0 22px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        input {
+            width: 100%;
+            height: 38px;
+            padding: 0 10px;
+            font-size: 14px;
+            border: 1px solid #d5dae3;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color .15s;
+        }
+        input:focus { border-color: #4a7cf6; }
+        .field { margin-bottom: 16px; }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        button {
+            flex: 1;
+            height: 38px;
+            font-size: 14px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: filter .15s;
+        }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+        button:hover:not(:disabled) { filter: brightness(1.06); }
+        .primary { background: #4a7cf6; color: #fff; }
+        .ghost { background: #fff; color: #374151; border-color: #d5dae3; }
+        .result {
+            margin-top: 18px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            display: none;
+            word-break: break-all;
+        }
+        .result.show { display: block; }
+        .result.ok    { background: #eaf7ef; color: #16653a; }
+        .result.warn  { background: #fdf3e3; color: #8a5a10; }
+        .result.error { background: #fdecec; color: #9b1c1c; }
+        .detail {
+            margin-top: 6px;
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 12px;
+            color: #6b7280;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>登录</h1>
+        <p class="sub">POST /login &nbsp;·&nbsp; application/x-www-form-urlencoded</p>
+
+        <form id="login-form" novalidate>
+            <div class="field">
+                <label for="username">用户名</label>
+                <input id="username" name="username" type="text" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label for="password">密码</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="actions">
+                <button type="submit" class="primary" data-action="/login">登录</button>
+                <button type="button" class="ghost" data-action="/register">注册</button>
+            </div>
+        </form>
+
+        <div id="result" class="result"></div>
+    </main>
+
+    <script>
+        const form    = document.getElementById('login-form');
+        const result  = document.getElementById('result');
+        const buttons = form.querySelectorAll('button[data-action]');
+
+        function show(kind, title, detail) {
+            result.className = 'result show ' + kind;
+            result.textContent = title;
+            if (detail) {
+                const pre = document.createElement('div');
+                pre.className = 'detail';
+                pre.textContent = detail;
+                result.appendChild(pre);
+            }
+        }
+
+        async function submit(url) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            if (!username || !password) {
+                show('warn', '请先填写用户名和密码');
+                return;
+            }
+
+            // 服务端按 username=...&password=... 解析正文
+            const body = new URLSearchParams({ username, password }).toString();
+
+            buttons.forEach(b => b.disabled = true);
+            show('warn', '请求中...');
+
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body
+                });
+                const text = await resp.text();
+                const kind = resp.ok ? 'ok' : 'error';
+                show(kind, 'HTTP ' + resp.status + ' ' + (text || '(空响应)'),
+                     'POST ' + url + '\nbody: ' + body);
+            } catch (e) {
+                // 例如响应不是完整 HTTP（缺 Connection/Content-Length）导致连接被重置
+                show('error', '请求失败：' + e.message, 'POST ' + url + '\nbody: ' + body);
+            } finally {
+                buttons.forEach(b => b.disabled = false);
+            }
+        }
+
+        form.addEventListener('submit', e => { e.preventDefault(); submit('/login'); });
+        form.querySelector('[data-action="/register"]')
+            .addEventListener('click', () => submit('/register'));
+    </script>
+</body>
+</html>

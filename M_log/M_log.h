@@ -15,6 +15,9 @@ class M_log{
 
 
     public:
+
+    M_log(const M_log&) = delete;
+    M_log& operator=(const M_log&) = delete;
     //获取日志实例
         static M_log* get_instance(){
             static M_log instance;
@@ -107,3 +110,9 @@ void M_log::write_log(int level, const char* format, Args ...args){
         m_log_line_count++;
     }
 }
+
+
+#define LOG_DEBUG(format, ...) M_log::get_instance()->write_log(0, format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) M_log::get_instance()->write_log(1, format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...) M_log::get_instance()->write_log(2, format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) M_log::get_instance()->write_log(3, format, ##__VA_ARGS__)
