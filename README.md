@@ -112,21 +112,21 @@ CREATE TABLE IF NOT EXISTS user (
 
 ```
                    主线程（Reactor）
-   ┌────────────────────────────────────────────────┐
-   │  epoll_wait                                    │
-   │    ├─ listenfd → accept 循环到 EAGAIN           │
-   │    ├─ timerfd  → 执行到期回调（关闭空闲连接）    │
-   │    ├─ EPOLLIN  → M_http::read()                │
-   │    │              └─ 有数据 → 丢给线程池         │
-   │    └─ EPOLLOUT → M_http::write()               │
-   └────────────────────────────────────────────────┘
-                        │ enqueue
-                        ▼
-   ┌────────────────────────────────────────────────┐
-   │  线程池（默认 8 个线程）                         │
-   │    M_http::process()                           │
-   │      解析请求 → 生成响应 → modfd(EPOLLOUT)      │
-   └────────────────────────────────────────────────┘
+   
+     epoll_wait                                    
+       ├─ listenfd → accept 循环到 EAGAIN           
+       ├─ timerfd  → 执行到期回调（关闭空闲连接）    
+       ├─ EPOLLIN  → M_http::read()                
+       │              └─ 有数据 → 丢给线程池         
+       └─ EPOLLOUT → M_http::write()               
+   
+         │ enqueue
+         ▼
+   
+     线程池（默认 8 个线程）                         
+       M_http::process()                           
+         解析请求 → 生成响应 → modfd(EPOLLOUT)      
+   
 ```
 
 一个 TCP 连接对应一个 `M_http` 对象，读写缓冲、解析游标、响应 iovec 都放在对象里；
@@ -188,13 +188,4 @@ ET 只在 不可读 → 可读 的边沿通知一次，所以：
 三者通过 `M_epoll_mode.h` 的 `EPOLL_TRIGGER` 宏统一，避免只改一处导致连接卡死。
 想切回水平触发，注释掉该文件里的 `#define ET_EPOLL` 即可。
 
-## 已知限制
-
-
-- 只支持 `GET` / `POST` 和 HTTP/1.1，不处理 `HEAD`、`PUT` 等
-- 不支持请求流水线（pipelining）、分块传输（`Transfer-Encoding: chunked`）、压缩
-- 读缓冲固定 2048 字节、写缓冲固定 1024 字节，超长请求会被直接断开
-- SQL 用字符串拼接，**未做注入防护**，仅用于学习
-- 静态文件路径未做规范化，理论上存在 `../` 路径穿越风险
-- 目录请求直接返回 400，不提供目录列表
 
